@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-crema: #fff8f0;
+  --color-crema-oscuro: #f6ead9;
+  --color-terra: #b5452a;
+  --color-terra-oscuro: #8f3520;
+  --color-terra-claro: #f7dcd2;
+  --color-tinta: #2b1d16;
+  --color-gris: #6f625a;
+  --color-borde: #e6d6c3;
+  --color-oliva: #4f6f2f;
+  --color-oliva-claro: #e3ecd6;
+  --color-aviso: #9a6a00;
+  --color-aviso-claro: #fff1c7;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Letra grande en toda la app: 1rem = 18px */
+html {
+  font-size: 112.5%;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-crema);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-terra);
+  outline-offset: 2px;
+}
+
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+
+@keyframes subir {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animar-subir { animation: subir 180ms ease-out; }
