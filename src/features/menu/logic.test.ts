@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addDays, formatWeekRange, mondayOf, weekDates, weekdayName } from '../../lib/dates'
-import { dishLabel, pastWeeksWithDishes, planCopyWeek, planSetDay, type MenuDay } from './logic'
+import { daysByDate, dishLabel, menuDayId, parseMenuDayId, pastWeeksWithDishes, planCopyWeek, planSetDay, type MenuDay } from './logic'
 
 const H = 'casa'
 const day = (id: string, dish_text: string | null, recipe_id: string | null = null, extra: Partial<MenuDay> = {}): MenuDay => ({
@@ -42,10 +42,10 @@ describe('menú', () => {
   })
 
   it('poner y quitar plato usa la fecha como id (nunca duplica)', () => {
-    expect(planSetDay('2026-09-28', { dish_text: ' Paella ', recipe_id: null })).toEqual({
+    expect(planSetDay('familia', '2026-09-28', { dish_text: ' Paella ', recipe_id: null })).toEqual({
       table: 'menu_days', id: '2026-09-28', op: 'insert', patch: { dish_text: 'Paella', recipe_id: null, deleted_at: null },
     })
-    expect(planSetDay('2026-09-28', null).patch).toEqual({ dish_text: null, recipe_id: null, deleted_at: null })
+    expect(planSetDay('familia', '2026-09-28', null).patch).toEqual({ dish_text: null, recipe_id: null, deleted_at: null })
   })
 
   it('copiar una semana deja la nueva exactamente igual (también los días vacíos)', () => {
@@ -53,7 +53,7 @@ describe('menú', () => {
       ['2026-09-21', day('2026-09-21', 'Lentejas', 'r1')],
       ['2026-09-23', day('2026-09-23', 'Pollo asado')],
     ])
-    const muts = planCopyWeek('2026-09-21', '2026-09-28', byDate)
+    const muts = planCopyWeek('familia', '2026-09-21', '2026-09-28', byDate)
     expect(muts).toHaveLength(7)
     expect(muts.map((m) => m.id)).toEqual(weekDates('2026-09-28'))
     expect(muts[0].patch).toMatchObject({ dish_text: 'Lentejas', recipe_id: 'r1' })
@@ -66,9 +66,37 @@ describe('menú', () => {
       day('2026-09-01', 'A'), day('2026-09-02', 'B'), day('2026-09-15', 'C'),
       day('2026-09-22', null), day('2026-09-29', 'Futuro'),
     ]
-    expect(pastWeeksWithDishes(days, '2026-09-28', mondayOf)).toEqual([
+    expect(pastWeeksWithDishes(daysByDate(days, 'familia'), '2026-09-28')).toEqual([
       { monday: '2026-09-14', count: 1 },
       { monday: '2026-08-31', count: 2 },
     ])
+  })
+})
+
+describe('menú familiar y menú personal', () => {
+  it('cada menú tiene su propia clave y se puede leer de vuelta', () => {
+    expect(menuDayId('familia', '2026-09-28')).toBe('2026-09-28')
+    expect(menuDayId('yo', '2026-09-28')).toBe('7026-09-28')
+    expect(parseMenuDayId('7026-09-28')).toEqual({ scope: 'yo', date: '2026-09-28' })
+    expect(parseMenuDayId('2026-09-28')).toEqual({ scope: 'familia', date: '2026-09-28' })
+    // La clave personal sigue cumpliendo el formato que exige la base de datos.
+    expect(/^\d{4}-\d{2}-\d{2}$/.test(menuDayId('yo', '2026-12-31'))).toBe(true)
+  })
+
+  it('los dos menús no se mezclan', () => {
+    const days = [
+      day('2026-09-28', 'Lentejas (familia)'),
+      day(menuDayId('yo', '2026-09-28'), 'Pollo con boniato (yo)'),
+    ]
+    const fam = daysByDate(days, 'familia')
+    const yo = daysByDate(days, 'yo')
+    expect(fam.get('2026-09-28')?.dish_text).toBe('Lentejas (familia)')
+    expect(yo.get('2026-09-28')?.dish_text).toBe('Pollo con boniato (yo)')
+    expect(planSetDay('yo', '2026-09-29', { dish_text: 'Ensalada', recipe_id: null }).id).toBe('7026-09-29')
+    const copy = planCopyWeek('yo', '2026-09-28', '2026-10-05', yo)
+    expect(copy.every((m) => m.id.startsWith('7026-10-') || m.id.startsWith('7026-09-'))).toBe(true)
+    expect(copy[0]).toMatchObject({ id: '7026-10-05', patch: { dish_text: 'Pollo con boniato (yo)' } })
+    // La semana personal no aparece como semana pasada del menú familiar.
+    expect(pastWeeksWithDishes(fam, '2026-10-05')).toEqual([{ monday: '2026-09-28', count: 1 }])
   })
 })

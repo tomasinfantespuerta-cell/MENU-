@@ -6,9 +6,10 @@ import { Sheet } from '../../ui/Sheet'
 import { filterRecipes } from '../recipes/logic'
 import { useRecipes } from '../recipes/hooks'
 import { RecipeImage } from '../recipes/RecipeImage'
-import { dishLabel, hasDish, planSetDay, type MenuDay } from './logic'
+import { dishLabel, hasDish, planSetDay, type MenuDay, type MenuScope } from './logic'
 
 interface Props {
+  scope: MenuScope
   date: string
   day: MenuDay | undefined
   onClose: () => void
@@ -16,7 +17,7 @@ interface Props {
 }
 
 /** Poner el plato de un día: escribiéndolo o eligiéndolo del recetario. */
-export function DaySheet({ date, day, onClose, onOpenRecipe }: Props) {
+export function DaySheet({ scope, date, day, onClose, onOpenRecipe }: Props) {
   const engine = useEngine()
   const { showUndo } = useFeedback()
   const recipes = useRecipes()
@@ -34,7 +35,7 @@ export function DaySheet({ date, day, onClose, onOpenRecipe }: Props) {
     if (t === saved.current.trim()) return
     saved.current = t
     const keepRecipe = linked && !linked.deleted_at && linked.title === t
-    void engine.mutate([planSetDay(date, t ? { dish_text: t, recipe_id: keepRecipe ? linked.id : null } : null)])
+    void engine.mutate([planSetDay(scope, date, t ? { dish_text: t, recipe_id: keepRecipe ? linked.id : null } : null)])
   }
   const saveRef = useRef(saveText)
   saveRef.current = saveText
@@ -47,7 +48,7 @@ export function DaySheet({ date, day, onClose, onOpenRecipe }: Props) {
   const pick = (id: string, title: string) => {
     done.current = true
     setText(title)
-    void engine.mutate([planSetDay(date, { dish_text: title, recipe_id: id })])
+    void engine.mutate([planSetDay(scope, date, { dish_text: title, recipe_id: id })])
     onClose()
   }
 
@@ -55,14 +56,16 @@ export function DaySheet({ date, day, onClose, onOpenRecipe }: Props) {
     const prev = day
     done.current = true
     setText('')
-    void engine.mutate([planSetDay(date, null)])
+    void engine.mutate([planSetDay(scope, date, null)])
     onClose()
     if (hasDish(prev)) {
-      showUndo('Plato quitado', () => engine.mutate([planSetDay(date, { dish_text: prev!.dish_text, recipe_id: prev!.recipe_id })]))
+      showUndo('Plato quitado', () => engine.mutate([planSetDay(scope, date, { dish_text: prev!.dish_text, recipe_id: prev!.recipe_id })]))
     }
   }
 
-  const list = filterRecipes(recipes ?? [], query, null)
+  // En tu menú, las saludables primero.
+  const all = filterRecipes(recipes ?? [], query, null)
+  const list = scope === 'yo' ? [...all.filter((r) => r.tags?.includes('saludable')), ...all.filter((r) => !r.tags?.includes('saludable'))] : all
 
   return (
     <Sheet title={`${weekdayName(date)} ${formatShortDate(date)}`} onClose={onClose}>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { CATEGORIES } from '../../lib/categories'
 import { capitalize, normalizeName } from '../../lib/text'
 import { Sheet } from '../../ui/Sheet'
-import type { ShoppingItem } from './logic'
+import { categoryOf, encodeCategory, listOf, type ShoppingItem } from './logic'
 
 interface Props {
   item: ShoppingItem
@@ -66,11 +66,11 @@ export function EditItemSheet({ item, onSave, onDelete, onClose }: Props) {
           <legend className="mb-2 text-base font-semibold text-gris">Categoría</legend>
           <div className="grid grid-cols-2 gap-2">
             {CATEGORIES.map((c) => {
-              const active = item.category === c.id
+              const active = categoryOf(item) === c.id
               return (
                 <button
                   key={c.id}
-                  onClick={() => onSave(item.id, { category: c.id })}
+                  onClick={() => onSave(item.id, { category: encodeCategory(listOf(item), c.id) })}
                   aria-pressed={active}
                   className={`flex min-h-14 items-center gap-2 rounded-2xl border-2 px-3 text-left text-base font-semibold ${
                     active ? 'border-terra bg-terra-claro' : 'border-borde bg-white'

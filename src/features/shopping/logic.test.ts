@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { guessCategory } from '../../lib/categories'
 import { normalizeName } from '../../lib/text'
-import { buildView, groupByCategory, makeItem, planAddMany, planMove, type ShoppingItem } from './logic'
+import { buildView, categoryOf, groupByCategory, listOf, makeItem, planAddMany, planMove, type ShoppingItem } from './logic'
 
 const H = 'casa'
 
@@ -84,5 +84,27 @@ describe('utilidades', () => {
     expect(guessCategory('Lejía')).toBe('limpieza')
     expect(guessCategory('Merluza')).toBe('carne_pescado')
     expect(guessCategory('Algo raro')).toBe('otros')
+  })
+})
+
+describe('lista familiar y lista personal', () => {
+  it('cada lista muestra solo lo suyo', () => {
+    const all: ShoppingItem[] = []
+    all.push(makeItem({ name: 'Leche', category: 'lacteos_huevos' }, all, H))
+    all.push(makeItem({ name: 'Boniato', category: 'fruta_verdura' }, all, H, 'yo'))
+    expect(buildView(all).pending.map((i) => i.name)).toEqual(['Leche'])
+    expect(buildView(all, 'yo').pending.map((i) => i.name)).toEqual(['Boniato'])
+    expect(listOf(all[1])).toBe('yo')
+    expect(categoryOf(all[1])).toBe('fruta_verdura')
+    expect(groupByCategory(buildView(all, 'yo').pending).map((g) => g.category)).toEqual(['fruta_verdura'])
+  })
+
+  it('no duplica dentro de la misma lista, pero sí se puede tener lo mismo en las dos', () => {
+    const all: ShoppingItem[] = [makeItem({ name: 'Pollo' }, [], H)]
+    const yo = planAddMany([{ name: 'pollo' }], all, H, 'yo')
+    expect(yo.added).toEqual(['Pollo'])
+    expect(listOf(yo.mutations[0].patch as unknown as ShoppingItem)).toBe('yo')
+    const fam = planAddMany([{ name: 'pollo' }], all, H, 'familia')
+    expect(fam.skipped).toEqual(['Pollo'])
   })
 })

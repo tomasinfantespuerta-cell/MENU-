@@ -2,7 +2,7 @@ import { guessCategory } from '../../lib/categories'
 import { normalizeName } from '../../lib/text'
 import type { Mutation } from '../../sync/types'
 import type { NewItemInput } from '../shopping/logic'
-import type { SeedRecipe } from './seed'
+import type { PoolRecipe } from '../ideas/build'
 
 export interface RecipeIngredient {
   name: string
@@ -30,6 +30,7 @@ export interface Recipe {
 }
 
 export const FILTERS: Array<{ id: string; label: string; emoji: string }> = [
+  { id: 'saludable', label: 'Saludable', emoji: '🥗' },
   { id: 'rapida', label: 'Rápidas', emoji: '⏱️' },
   { id: 'carne', label: 'Carne', emoji: '🍗' },
   { id: 'pescado', label: 'Pescado', emoji: '🐟' },
@@ -97,7 +98,7 @@ export async function seedRecipeId(householdId: string, slug: string): Promise<s
  * que alguien borró o se pisa una que alguien editó.
  */
 export async function planSeed(
-  seeds: SeedRecipe[],
+  seeds: PoolRecipe[],
   existingIds: Set<string>,
   householdId: string,
 ): Promise<Mutation[]> {

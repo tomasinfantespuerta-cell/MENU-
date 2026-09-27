@@ -36,4 +36,6 @@ src/household/         código de casa (crear / unirse)
 - [x] Fase 1: base, PWA, código de casa, sincronización offline y lista de la compra
 - [x] Fase 2: recetario (15 recetas iniciales, buscador, filtros, fotos)
 - [x] Fase 3: menú semanal (historial, copiar semana)
+- [x] Pestaña «Yo» (menú y compra personales, activable por móvil)
+- [x] Recetas saludables e «Ideas de la semana» (80 saludables + 40 familiares que rotan cada lunes)
 - [ ] Fase 4: pulido

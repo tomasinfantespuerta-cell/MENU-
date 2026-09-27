@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { MenuPage } from './features/menu/MenuPage'
+import { IdeaDetail } from './features/ideas/IdeaDetail'
+import { IdeasPage } from './features/ideas/IdeasPage'
+import { PersonalPage } from './features/personal/PersonalPage'
 import { useSeedRecipes } from './features/recipes/hooks'
+import { usePersonalEnabled } from './lib/personal'
 import { RecipeDetail } from './features/recipes/RecipeDetail'
 import { RecipeEditor } from './features/recipes/RecipeEditor'
 import { RecipesPage } from './features/recipes/RecipesPage'
@@ -14,11 +18,12 @@ import { BottomNav, type Tab } from './ui/BottomNav'
 import { FeedbackProvider } from './ui/feedback'
 import { SyncBadge } from './ui/SyncBadge'
 
-const TABS: Tab[] = ['menu', 'compra', 'recetas']
+const TABS: Tab[] = ['menu', 'compra', 'recetas', 'yo']
 const TAB_TITLES: Record<Tab, string> = {
   menu: 'Menú semanal',
   compra: 'La compra',
   recetas: 'Recetas',
+  yo: 'Lo mío',
 }
 const LAST_TAB_KEY = 'comidas-casa.ultima-pestana'
 
@@ -26,7 +31,7 @@ interface Route {
   path: string
   tab: Tab | null
   /** Pantallas "hijas" con botón Volver. */
-  page: 'lista' | 'ajustes' | 'receta' | 'editar-receta' | 'nueva-receta'
+  page: 'lista' | 'ajustes' | 'receta' | 'editar-receta' | 'nueva-receta' | 'ideas' | 'idea' | 'ideas-yo'
   id: string | null
 }
 
@@ -43,6 +48,9 @@ function parseRoute(): Route {
   const path = location.hash.replace(/^#\/?/, '')
   const parts = path.split('/').filter(Boolean)
   if (parts[0] === 'ajustes') return { path, tab: null, page: 'ajustes', id: null }
+  if (parts[0] === 'yo' && parts[1] === 'ideas') return { path, tab: 'yo', page: 'ideas-yo', id: null }
+  if (parts[0] === 'recetas' && parts[1] === 'ideas' && parts[2]) return { path, tab: 'recetas', page: 'idea', id: parts[2] }
+  if (parts[0] === 'recetas' && parts[1] === 'ideas') return { path, tab: 'recetas', page: 'ideas', id: null }
   if (parts[0] === 'recetas' && parts[1] === 'nueva') return { path, tab: 'recetas', page: 'nueva-receta', id: null }
   if (parts[0] === 'recetas' && parts[1] && parts[2] === 'editar') return { path, tab: 'recetas', page: 'editar-receta', id: parts[1] }
   if (parts[0] === 'recetas' && parts[1]) return { path, tab: 'recetas', page: 'receta', id: parts[1] }
@@ -70,6 +78,11 @@ function titleOf(route: Route): string {
       return 'Editar receta'
     case 'nueva-receta':
       return 'Nueva receta'
+    case 'ideas':
+    case 'ideas-yo':
+      return 'Ideas'
+    case 'idea':
+      return 'Idea'
     default:
       return TAB_TITLES[route.tab ?? 'menu']
   }
@@ -81,7 +94,12 @@ function parentOf(route: Route): string | null {
       return lastTab()
     case 'receta':
     case 'nueva-receta':
+    case 'ideas':
       return 'recetas'
+    case 'idea':
+      return 'recetas/ideas'
+    case 'ideas-yo':
+      return 'yo'
     case 'editar-receta':
       return `recetas/${route.id}`
     default:
@@ -93,6 +111,7 @@ function Shell({ onLeave }: { onLeave: () => void }) {
   const engine = useEngine()
   const [route, go] = useHashRoute()
   useSeedRecipes()
+  const personal = usePersonalEnabled()
 
   useEffect(() => {
     document.title = `${titleOf(route)} · Comidas de casa`
@@ -147,13 +166,28 @@ function Shell({ onLeave }: { onLeave: () => void }) {
         {route.page === 'lista' && route.tab === 'compra' && <ShoppingPage />}
         {route.page === 'lista' && route.tab === 'menu' && <MenuPage go={go} />}
         {route.page === 'lista' && route.tab === 'recetas' && <RecipesPage go={go} />}
+        {route.page === 'lista' && route.tab === 'yo' && (personal ? <PersonalPage go={go} /> : <PersonalDisabled go={go} />)}
+        {route.page === 'ideas' && <IdeasPage go={go} />}
+        {route.page === 'ideas-yo' && <IdeasPage go={go} only="saludable" />}
+        {route.page === 'idea' && route.id && <IdeaDetail slug={route.id} go={go} />}
         {route.page === 'receta' && route.id && <RecipeDetail id={route.id} go={go} />}
         {route.page === 'editar-receta' && route.id && <RecipeEditor id={route.id} go={go} />}
         {route.page === 'nueva-receta' && <RecipeEditor id={null} go={go} />}
         {route.page === 'ajustes' && <SettingsPage onLeave={leave} />}
       </main>
 
-      <BottomNav current={route.tab ?? ''} onChange={(t) => go(t)} />
+      <BottomNav current={route.tab ?? ''} onChange={(t) => go(t)} showPersonal={personal} />
+    </div>
+  )
+}
+
+function PersonalDisabled({ go }: { go: (path: string) => void }) {
+  return (
+    <div className="mt-10 flex flex-col items-center gap-4 text-center">
+      <p className="text-lg text-gris">La sección personal no está activada en este móvil.</p>
+      <button onClick={() => go('ajustes')} className="min-h-14 rounded-2xl bg-terra px-6 text-lg font-bold text-white">
+        Ir a Ajustes
+      </button>
     </div>
   )
 }

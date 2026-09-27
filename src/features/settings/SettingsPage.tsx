@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { setPersonalEnabled, usePersonalEnabled } from '../../lib/personal'
 import { useEngine, useHousehold, useSyncStatus } from '../../sync/EngineProvider'
 import { useFeedback } from '../../ui/feedback'
 
@@ -13,6 +14,7 @@ export function SettingsPage({ onLeave }: { onLeave: () => void }) {
   const status = useSyncStatus()
   const { confirm, showInfo } = useFeedback()
   const [syncing, setSyncing] = useState(false)
+  const personal = usePersonalEnabled()
 
   const share = async () => {
     const text = `Código de casa para la app Comidas de casa: ${household.code}`
@@ -58,6 +60,26 @@ export function SettingsPage({ onLeave }: { onLeave: () => void }) {
         </p>
         <button onClick={share} className="mt-3 min-h-14 w-full rounded-2xl bg-terra text-lg font-bold text-white">
           Compartir código
+        </button>
+      </section>
+
+      <section className={card}>
+        <h2 className="text-lg font-bold">🥗 Mi sección personal</h2>
+        <p className="mt-1 text-base text-gris">
+          Añade abajo la pestaña «Yo», con tu menú y tu lista de la compra. Solo aparece en este móvil.
+        </p>
+        <button
+          role="switch"
+          aria-checked={personal}
+          onClick={() => setPersonalEnabled(!personal)}
+          className={`mt-3 flex min-h-14 w-full items-center justify-between rounded-2xl border-2 px-4 text-lg font-bold ${
+            personal ? 'border-oliva bg-oliva-claro text-oliva' : 'border-borde bg-white'
+          }`}
+        >
+          <span>{personal ? 'Activada en este móvil' : 'Activar en este móvil'}</span>
+          <span aria-hidden className={`flex h-8 w-14 items-center rounded-full p-1 ${personal ? 'justify-end bg-oliva' : 'justify-start bg-borde'}`}>
+            <span className="h-6 w-6 rounded-full bg-white shadow" />
+          </span>
         </button>
       </section>
 

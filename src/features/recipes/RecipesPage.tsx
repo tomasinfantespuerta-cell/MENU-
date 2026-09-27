@@ -13,6 +13,17 @@ export function RecipesPage({ go }: { go: (path: string) => void }) {
 
   return (
     <div className="flex flex-col gap-4">
+      <button
+        onClick={() => go('recetas/ideas')}
+        className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-2 border-terra bg-terra-claro px-4 text-left"
+      >
+        <span>
+          <span className="block text-lg font-bold text-terra-oscuro">✨ Ideas de la semana</span>
+          <span className="block text-base text-terra-oscuro">Recetas nuevas cada lunes</span>
+        </span>
+        <span aria-hidden className="text-2xl text-terra-oscuro">›</span>
+      </button>
+
       <div className="flex gap-2">
         <label htmlFor="buscar-receta" className="sr-only">Buscar receta</label>
         <input

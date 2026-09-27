@@ -1,24 +1,24 @@
 import { useMemo } from 'react'
-import { formatWeekRange, mondayOf, weekDates } from '../../lib/dates'
+import { formatWeekRange, weekDates } from '../../lib/dates'
 import { useEngine } from '../../sync/EngineProvider'
 import { useFeedback } from '../../ui/feedback'
 import { Sheet } from '../../ui/Sheet'
 import { useRecipes } from '../recipes/hooks'
-import { dishLabel, hasDish, pastWeeksWithDishes, planCopyWeek, type MenuDay } from './logic'
+import { dishLabel, hasDish, pastWeeksWithDishes, planCopyWeek, type MenuDay, type MenuScope } from './logic'
 
 interface Props {
+  scope: MenuScope
   targetMonday: string
-  days: MenuDay[]
+  byDate: Map<string, MenuDay>
   onClose: () => void
 }
 
-export function CopyWeekSheet({ targetMonday, days, onClose }: Props) {
+export function CopyWeekSheet({ scope, targetMonday, byDate, onClose }: Props) {
   const engine = useEngine()
   const { confirm, showUndo } = useFeedback()
   const recipes = useRecipes()
   const recipeMap = useMemo(() => new Map((recipes ?? []).map((r) => [r.id, r])), [recipes])
-  const byDate = useMemo(() => new Map(days.map((d) => [d.id, d])), [days])
-  const weeks = pastWeeksWithDishes(days, targetMonday, mondayOf).slice(0, 12)
+  const weeks = pastWeeksWithDishes(byDate, targetMonday).slice(0, 12)
 
   const copy = async (from: string) => {
     const targetHasDishes = weekDates(targetMonday).some((d) => hasDish(byDate.get(d)))
@@ -30,8 +30,8 @@ export function CopyWeekSheet({ targetMonday, days, onClose }: Props) {
       })
       if (!ok) return
     }
-    const undo = planCopyWeek(targetMonday, targetMonday, byDate)
-    await engine.mutate(planCopyWeek(from, targetMonday, byDate))
+    const undo = planCopyWeek(scope, targetMonday, targetMonday, byDate)
+    await engine.mutate(planCopyWeek(scope, from, targetMonday, byDate))
     onClose()
     showUndo('Menú copiado', () => engine.mutate(undo))
   }

@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import { addDays, formatShortDate, formatWeekRange, mondayOf, today, weekDates, weekdayName } from '../../lib/dates'
+import { ingredientsForShopping } from '../recipes/logic'
 import { useMenuDays, useRecipes } from '../recipes/hooks'
+import { useAddToShopping } from '../shopping/useAddToShopping'
 import { CopyWeekSheet } from './CopyWeekSheet'
 import { DaySheet } from './DaySheet'
-import { dishLabel } from './logic'
+import { daysByDate, dishLabel, type MenuScope } from './logic'
 
 function weekCaption(monday: string, current: string): string {
   const diff = Math.round((Date.parse(monday) - Date.parse(current)) / (7 * 86_400_000))
@@ -13,7 +15,7 @@ function weekCaption(monday: string, current: string): string {
   return diff < 0 ? `Hace ${-diff} semanas` : `Dentro de ${diff} semanas`
 }
 
-export function MenuPage({ go }: { go: (path: string) => void }) {
+export function MenuPage({ go, scope = 'familia' }: { go: (path: string) => void; scope?: MenuScope }) {
   const days = useMenuDays()
   const recipes = useRecipes()
   const currentMonday = mondayOf(today())
@@ -21,9 +23,18 @@ export function MenuPage({ go }: { go: (path: string) => void }) {
   const [editing, setEditing] = useState<string | null>(null)
   const [copying, setCopying] = useState(false)
 
-  const byDate = useMemo(() => new Map((days ?? []).map((d) => [d.id, d])), [days])
+  const addToShopping = useAddToShopping()
+  const byDate = useMemo(() => daysByDate(days ?? [], scope), [days, scope])
   const recipeMap = useMemo(() => new Map((recipes ?? []).map((r) => [r.id, r])), [recipes])
   const todayIso = today()
+
+  // Ingredientes de todas las recetas de la semana, a la lista que toca.
+  const weekRecipes = weekDates(monday)
+    .map((d) => byDate.get(d))
+    .map((d) => (d && !d.deleted_at && d.recipe_id ? recipeMap.get(d.recipe_id) : undefined))
+    .filter((r) => r && !r.deleted_at)
+  const addWeekToShopping = () =>
+    addToShopping(weekRecipes.flatMap((r) => ingredientsForShopping(r!)), scope === 'yo' ? 'yo' : 'familia')
 
   if (days === undefined) return <p className="p-6 text-center text-lg text-gris">Cargando…</p>
 
@@ -81,6 +92,11 @@ export function MenuPage({ go }: { go: (path: string) => void }) {
         })}
       </ul>
 
+      {weekRecipes.length > 0 && (
+        <button onClick={() => void addWeekToShopping()} className="min-h-14 rounded-2xl bg-terra px-3 text-lg font-bold text-white active:scale-[0.98]">
+          🛒 Ingredientes de la semana a {scope === 'yo' ? 'mi compra' : 'la compra'}
+        </button>
+      )}
       <button onClick={() => setCopying(true)} className="min-h-14 rounded-2xl border-2 border-borde bg-white text-lg font-semibold">
         📋 Copiar de otra semana
       </button>
@@ -88,6 +104,7 @@ export function MenuPage({ go }: { go: (path: string) => void }) {
       {editing && (
         <DaySheet
           key={editing}
+          scope={scope}
           date={editing}
           day={byDate.get(editing)}
           onClose={() => setEditing(null)}
@@ -97,7 +114,7 @@ export function MenuPage({ go }: { go: (path: string) => void }) {
           }}
         />
       )}
-      {copying && <CopyWeekSheet targetMonday={monday} days={days} onClose={() => setCopying(false)} />}
+      {copying && <CopyWeekSheet scope={scope} targetMonday={monday} byDate={byDate} onClose={() => setCopying(false)} />}
     </div>
   )
 }

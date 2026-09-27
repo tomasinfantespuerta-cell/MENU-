@@ -1,16 +1,18 @@
-export type Tab = 'menu' | 'compra' | 'recetas'
+export type Tab = 'menu' | 'compra' | 'recetas' | 'yo'
 
 const TABS: Array<{ id: Tab; label: string; icon: string }> = [
   { id: 'menu', label: 'Menú', icon: '📅' },
   { id: 'compra', label: 'Compra', icon: '🛒' },
   { id: 'recetas', label: 'Recetas', icon: '📖' },
+  { id: 'yo', label: 'Yo', icon: '🥗' },
 ]
 
-export function BottomNav({ current, onChange }: { current: string; onChange: (t: Tab) => void }) {
+export function BottomNav({ current, onChange, showPersonal }: { current: string; onChange: (t: Tab) => void; showPersonal: boolean }) {
+  const tabs = showPersonal ? TABS : TABS.filter((t) => t.id !== 'yo')
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-borde bg-white pb-safe" aria-label="Secciones">
       <ul className="mx-auto flex max-w-lg">
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const active = current === t.id
           return (
             <li key={t.id} className="flex-1">

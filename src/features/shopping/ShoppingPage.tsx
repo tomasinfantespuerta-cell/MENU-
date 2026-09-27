@@ -6,34 +6,34 @@ import { AddItemBar } from './AddItemBar'
 import { EditItemSheet } from './EditItemSheet'
 import { useShoppingItems } from './hooks'
 import { DoneItemRow } from './ItemRow'
-import { buildView, groupByCategory, makeItem, planMove, type ShoppingItem } from './logic'
+import { buildView, groupByCategory, makeItem, planMove, type ListId, type ShoppingItem } from './logic'
 import { SortableList } from './SortableList'
 
-const GROUP_KEY = 'comidas-casa.compra.agrupar'
+const groupKey = (list: ListId) => `comidas-casa.compra.agrupar${list === 'yo' ? '.yo' : ''}`
 
-function readGroupPref(): boolean {
+function readGroupPref(list: ListId): boolean {
   try {
-    return localStorage.getItem(GROUP_KEY) === '1'
+    return localStorage.getItem(groupKey(list)) === '1'
   } catch {
     return false
   }
 }
 
-export function ShoppingPage() {
+export function ShoppingPage({ list = 'familia' }: { list?: ListId }) {
   const engine = useEngine()
   const household = useHousehold()
   const { showUndo, confirm } = useFeedback()
   const items = useShoppingItems()
-  const [grouped, setGrouped] = useState(readGroupPref)
+  const [grouped, setGrouped] = useState(() => readGroupPref(list))
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  const view = useMemo(() => buildView(items ?? []), [items])
+  const view = useMemo(() => buildView(items ?? [], list), [items, list])
   const editing = editingId ? view.pending.concat(view.done).find((i) => i.id === editingId) : undefined
 
   const toggleGrouped = () => {
     setGrouped((g) => {
       try {
-        localStorage.setItem(GROUP_KEY, g ? '0' : '1')
+        localStorage.setItem(groupKey(list), g ? '0' : '1')
       } catch {
         /* sin almacenamiento: no pasa nada */
       }
@@ -42,7 +42,7 @@ export function ShoppingPage() {
   }
 
   const add = (name: string, quantity: string, category: string) => {
-    const item = makeItem({ name, quantity, category }, items ?? [], household.id)
+    const item = makeItem({ name, quantity, category }, items ?? [], household.id, list)
     void engine.insert('shopping_items', { ...item })
   }
 

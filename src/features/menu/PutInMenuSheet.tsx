@@ -1,35 +1,63 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { addDays, formatShortDate, formatWeekRange, mondayOf, today, weekDates, weekdayName } from '../../lib/dates'
+import { usePersonalEnabled } from '../../lib/personal'
 import { useEngine } from '../../sync/EngineProvider'
 import { useFeedback } from '../../ui/feedback'
 import { Sheet } from '../../ui/Sheet'
 import type { Recipe } from '../recipes/logic'
 import { useMenuDays, useRecipes } from '../recipes/hooks'
-import { dishLabel, planSetDay, type MenuDay } from './logic'
+import { daysByDate, dishLabel, planSetDay, type MenuScope } from './logic'
 
-/** Elegir el día en que se pone una receta (esta semana y la siguiente). */
-export function PutInMenuSheet({ recipe, onClose }: { recipe: Recipe; onClose: () => void }) {
+interface Props {
+  recipe: Pick<Recipe, 'id' | 'title' | 'tags'>
+  /** Para las ideas: guarda la receta en el recetario antes de ponerla en el menú. */
+  ensureSaved?: () => Promise<string>
+  onClose: () => void
+}
+
+/** Elegir el día (y el menú, si esta es tu app) en que se pone una receta. */
+export function PutInMenuSheet({ recipe, ensureSaved, onClose }: Props) {
   const engine = useEngine()
   const { showUndo } = useFeedback()
+  const personal = usePersonalEnabled()
+  const [scope, setScope] = useState<MenuScope>(personal && recipe.tags?.includes('saludable') ? 'yo' : 'familia')
   const days = useMenuDays()
   const recipes = useRecipes()
-  const byDate = useMemo(() => new Map((days ?? []).map((d) => [d.id, d])), [days])
+  const byDate = useMemo(() => daysByDate(days ?? [], scope), [days, scope])
   const recipeMap = useMemo(() => new Map((recipes ?? []).map((r) => [r.id, r])), [recipes])
   const thisMonday = mondayOf(today())
   const weeks = [thisMonday, addDays(thisMonday, 7)]
 
   const choose = async (date: string) => {
-    const prev: MenuDay | undefined = byDate.get(date)
-    await engine.mutate([planSetDay(date, { dish_text: recipe.title, recipe_id: recipe.id })])
+    const prev = byDate.get(date)
+    const recipeId = ensureSaved ? await ensureSaved() : recipe.id
+    await engine.mutate([planSetDay(scope, date, { dish_text: recipe.title, recipe_id: recipeId })])
     onClose()
-    showUndo(`Puesto el ${weekdayName(date).toLowerCase()} ${formatShortDate(date)}`, () =>
-      engine.mutate([planSetDay(date, prev && !prev.deleted_at ? { dish_text: prev.dish_text, recipe_id: prev.recipe_id } : null)]),
+    const where = scope === 'yo' ? 'en tu menú' : 'en el menú'
+    showUndo(`Puesto ${where} el ${weekdayName(date).toLowerCase()} ${formatShortDate(date)}`, () =>
+      engine.mutate([
+        planSetDay(scope, date, prev && !prev.deleted_at ? { dish_text: prev.dish_text, recipe_id: prev.recipe_id } : null),
+      ]),
     )
   }
 
   return (
     <Sheet title="¿Qué día?" onClose={onClose}>
       <div className="flex flex-col gap-5">
+        {personal && (
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Menú">
+            {(['familia', 'yo'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setScope(s)}
+                aria-pressed={scope === s}
+                className={`min-h-14 rounded-2xl border-2 text-base font-bold ${scope === s ? 'border-terra bg-terra text-white' : 'border-borde bg-white'}`}
+              >
+                {s === 'familia' ? '👨‍👩‍👧‍👦 Menú familiar' : '🥗 Mi menú'}
+              </button>
+            ))}
+          </div>
+        )}
         {weeks.map((monday, wi) => (
           <section key={monday}>
             <h3 className="mb-2 text-base font-bold text-gris">
