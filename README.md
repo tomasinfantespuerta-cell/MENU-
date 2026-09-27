@@ -34,6 +34,6 @@ src/household/         código de casa (crear / unirse)
 ## Estado
 
 - [x] Fase 1: base, PWA, código de casa, sincronización offline y lista de la compra
-- [ ] Fase 2: recetario
-- [ ] Fase 3: menú semanal
+- [x] Fase 2: recetario (15 recetas iniciales, buscador, filtros, fotos)
+- [x] Fase 3: menú semanal (historial, copiar semana)
 - [ ] Fase 4: pulido

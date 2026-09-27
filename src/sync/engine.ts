@@ -286,9 +286,15 @@ export class SyncEngine {
       this.onTransientError(err)
       return false
     }
+    await this.db.setMeta('pulled', this.now().toISOString())
     this.onSuccess()
     this.setStatus({ lastSyncedAt: this.now().toISOString() })
     return true
+  }
+
+  /** true si alguna vez se descargó todo del servidor (la copia local está completa). */
+  async hasPulledOnce(): Promise<boolean> {
+    return Boolean(await this.db.getMeta<string>('pulled'))
   }
 
   /** Mezcla una fila que viene del servidor (pull o Realtime). */
