@@ -1,6 +1,7 @@
 import { mondayOf, today } from '../../lib/dates'
 import type { Mutation } from '../../sync/types'
 import { seedRecipeId } from '../recipes/logic'
+import { nutritionForSlug, withFavorite, withNutrition } from '../recipes/nutrition'
 import type { PoolRecipe } from './build'
 import { FAMILY_POOL } from './poolFamily'
 import { HEALTHY_POOL_1 } from './poolHealthy1'
@@ -74,7 +75,7 @@ export function ideaRecipeId(householdId: string, slug: string): Promise<string>
   return seedRecipeId(householdId, `idea:${slug}`)
 }
 
-export function planSaveIdea(id: string, idea: PoolRecipe): Mutation {
+export function planSaveIdea(id: string, idea: PoolRecipe, favorite = false): Mutation {
   return {
     table: 'recipes',
     id,
@@ -85,7 +86,7 @@ export function planSaveIdea(id: string, idea: PoolRecipe): Mutation {
       prep_minutes: idea.prep_minutes,
       difficulty: idea.difficulty,
       servings: idea.servings,
-      tags: idea.tags,
+      tags: withFavorite(withNutrition(idea.tags, nutritionForSlug(idea.slug)), favorite),
       ingredients: idea.ingredients,
       steps: idea.steps,
       deleted_at: null,

@@ -38,4 +38,5 @@ src/household/         código de casa (crear / unirse)
 - [x] Fase 3: menú semanal (historial, copiar semana)
 - [x] Pestaña «Yo» (menú y compra personales, activable por móvil)
 - [x] Recetas saludables e «Ideas de la semana» (80 saludables + 40 familiares que rotan cada lunes)
+- [x] Favoritas y calorías/macros aproximadas por ración
 - [ ] Fase 4: pulido

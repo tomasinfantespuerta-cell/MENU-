@@ -2,7 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
 import { formatWeekRange, mondayOf, today } from '../../lib/dates'
 import { useEngine, useHousehold } from '../../sync/EngineProvider'
-import { difficultyLabel, formatMinutes } from '../recipes/logic'
+import { formatMinutes } from '../recipes/logic'
+import { nutritionForSlug } from '../recipes/nutrition'
 import { RecipeImage } from '../recipes/RecipeImage'
 import type { PoolRecipe } from './build'
 import { ideaRecipeId, weeklyIdeas } from './logic'
@@ -32,7 +33,7 @@ function IdeaCard({ idea, saved, onOpen }: { idea: PoolRecipe; saved: boolean; o
         <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-4 py-3">
           <span className="text-lg leading-tight font-bold">{idea.title}</span>
           <span className="text-base text-gris">
-            {[`⏱ ${formatMinutes(idea.prep_minutes)}`, difficultyLabel(idea.difficulty), saved && '✓ Guardada'].filter(Boolean).join(' · ')}
+            {[`⏱ ${formatMinutes(idea.prep_minutes)}`, nutritionForSlug(idea.slug) && `${nutritionForSlug(idea.slug)!.kcal} kcal`, saved && '✓ Guardada'].filter(Boolean).join(' · ')}
           </span>
         </span>
       </button>

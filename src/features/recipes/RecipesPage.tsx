@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { difficultyLabel, FILTERS, filterRecipes, formatMinutes } from './logic'
 import { useRecipes } from './hooks'
+import { FAVORITE_TAG, isFavorite, nutritionFromTags } from './nutrition'
 import { RecipeImage } from './RecipeImage'
 
 export function RecipesPage({ go }: { go: (path: string) => void }) {
@@ -46,6 +47,15 @@ export function RecipesPage({ go }: { go: (path: string) => void }) {
         >
           Todas
         </button>
+        <button
+          onClick={() => setTag(tag === FAVORITE_TAG ? null : FAVORITE_TAG)}
+          aria-pressed={tag === FAVORITE_TAG}
+          className={`min-h-12 shrink-0 rounded-full border-2 px-4 text-base font-semibold whitespace-nowrap ${
+            tag === FAVORITE_TAG ? 'border-terra bg-terra text-white' : 'border-borde bg-white'
+          }`}
+        >
+          ⭐ Favoritas
+        </button>
         {FILTERS.map((f) => (
           <button
             key={f.id}
@@ -69,7 +79,11 @@ export function RecipesPage({ go }: { go: (path: string) => void }) {
 
       {list.length === 0 ? (
         <p className="mt-6 text-center text-lg text-gris">
-          {recipes.some((r) => !r.deleted_at) ? 'No hay recetas con esa búsqueda.' : 'Cargando las recetas…'}
+          {tag === FAVORITE_TAG && !query
+            ? 'Aún no hay favoritas. Abre una receta y pulsa la ☆.'
+            : recipes.some((r) => !r.deleted_at)
+              ? 'No hay recetas con esa búsqueda.'
+              : 'Cargando las recetas…'}
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -81,9 +95,16 @@ export function RecipesPage({ go }: { go: (path: string) => void }) {
               >
                 <RecipeImage recipe={r} className="h-24 w-24 shrink-0" />
                 <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-4 py-2">
-                  <span className="text-lg leading-tight font-bold">{r.title}</span>
+                  <span className="text-lg leading-tight font-bold">
+                    {isFavorite(r.tags) && <span className="mr-1 text-aviso" aria-label="Favorita">★</span>}
+                    {r.title}
+                  </span>
                   <span className="text-base text-gris">
-                    {[formatMinutes(r.prep_minutes) && `⏱ ${formatMinutes(r.prep_minutes)}`, difficultyLabel(r.difficulty)]
+                    {[
+                      formatMinutes(r.prep_minutes) && `⏱ ${formatMinutes(r.prep_minutes)}`,
+                      difficultyLabel(r.difficulty),
+                      nutritionFromTags(r.tags) && `${nutritionFromTags(r.tags)!.kcal} kcal`,
+                    ]
                       .filter(Boolean)
                       .join(' · ')}
                   </span>

@@ -5,6 +5,7 @@ import { PutInMenuSheet } from '../menu/PutInMenuSheet'
 import type { ListId } from '../shopping/logic'
 import { useAddToShopping } from '../shopping/useAddToShopping'
 import { difficultyLabel, formatMinutes, ingredientsForShopping, type Recipe } from './logic'
+import { isFavorite, nutritionFromTags } from './nutrition'
 import { RecipeImage } from './RecipeImage'
 
 interface Props {
@@ -15,6 +16,34 @@ interface Props {
   footer?: ReactNode
   /** Para ideas aún no guardadas. */
   ensureSaved?: () => Promise<string>
+  onToggleFavorite?: () => void
+}
+
+function NutritionBox({ tags }: { tags: string[] }) {
+  const n = nutritionFromTags(tags)
+  if (!n) return null
+  const items = [
+    { label: 'Calorías', value: `${n.kcal}`, unit: 'kcal', cls: 'bg-terra text-white' },
+    { label: 'Proteínas', value: `${n.protein}`, unit: 'g', cls: 'bg-white' },
+    { label: 'Hidratos', value: `${n.carbs}`, unit: 'g', cls: 'bg-white' },
+    { label: 'Grasas', value: `${n.fat}`, unit: 'g', cls: 'bg-white' },
+  ]
+  return (
+    <section className="rounded-3xl border-2 border-borde bg-crema-oscuro/60 p-4" aria-label="Valor nutricional por ración">
+      <h3 className="mb-3 text-base font-bold text-gris">Por ración (aproximado)</h3>
+      <dl className="grid grid-cols-2 gap-2">
+        {items.map((it) => (
+          <div key={it.label} className={`flex min-w-0 flex-col rounded-2xl px-4 py-2 ${it.cls}`}>
+            <dt className={`text-base font-semibold ${it.cls.includes('text-white') ? 'text-white/90' : 'text-gris'}`}>{it.label}</dt>
+            <dd className="whitespace-nowrap">
+              <span className="text-2xl font-extrabold">{it.value}</span>
+              <span className="ml-1 text-sm font-semibold">{it.unit}</span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
 }
 
 /** Mantiene la pantalla encendida mientras se cocina con la receta abierta. */
@@ -43,7 +72,8 @@ function useKeepScreenOn() {
   }, [])
 }
 
-export function RecipeView({ recipe, extraAction, footer, ensureSaved }: Props) {
+export function RecipeView({ recipe, extraAction, footer, ensureSaved, onToggleFavorite }: Props) {
+  const favorite = isFavorite(recipe.tags)
   const personal = usePersonalEnabled()
   const addToShopping = useAddToShopping()
   const [choosingDay, setChoosingDay] = useState(false)
@@ -63,7 +93,21 @@ export function RecipeView({ recipe, extraAction, footer, ensureSaved }: Props) 
     <article className="flex flex-col gap-5">
       {recipe.photo_path && <RecipeImage recipe={recipe} className="aspect-[4/3] w-full rounded-3xl" />}
       <div>
-        <h2 className="text-2xl leading-tight font-extrabold">{recipe.title}</h2>
+        <div className="flex items-start gap-3">
+          <h2 className="min-w-0 flex-1 text-2xl leading-tight font-extrabold">{recipe.title}</h2>
+          {onToggleFavorite && (
+            <button
+              onClick={onToggleFavorite}
+              aria-pressed={favorite}
+              aria-label={favorite ? 'Quitar de favoritas' : 'Marcar como favorita'}
+              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 text-3xl ${
+                favorite ? 'border-aviso bg-aviso-claro text-aviso' : 'border-borde bg-white text-gris'
+              }`}
+            >
+              {favorite ? '★' : '☆'}
+            </button>
+          )}
+        </div>
         {meta.length > 0 && (
           <ul className="mt-2 flex flex-wrap gap-2">
             {meta.map((m) => (
@@ -72,6 +116,8 @@ export function RecipeView({ recipe, extraAction, footer, ensureSaved }: Props) 
           </ul>
         )}
       </div>
+
+      <NutritionBox tags={recipe.tags ?? []} />
 
       <div className="flex flex-col gap-3">
         {extraAction}

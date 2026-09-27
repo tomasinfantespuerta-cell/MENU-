@@ -5,6 +5,7 @@ import { useEngine } from '../../sync/EngineProvider'
 import { useFeedback } from '../../ui/feedback'
 import { DIFFICULTIES, FILTERS, type Difficulty, type Recipe } from './logic'
 import { useRecipe } from './hooks'
+import { kcalFromMacros, nutritionFromTags, withNutrition } from './nutrition'
 import { photoToDataUrl } from './photo'
 
 interface Draft {
@@ -16,21 +17,44 @@ interface Draft {
   tags: string[]
   ingredients: Array<{ name: string; quantity: string }>
   steps: string[]
+  kcal: string
+  protein: string
+  carbs: string
+  fat: string
 }
 
 function toDraft(r: Recipe | null | undefined): Draft {
+  const n = nutritionFromTags(r?.tags)
   return {
+    kcal: n ? String(n.kcal) : '',
+    protein: n ? String(n.protein) : '',
+    carbs: n ? String(n.carbs) : '',
+    fat: n ? String(n.fat) : '',
     title: r?.title ?? '',
     photo_path: r?.photo_path ?? null,
     prep_minutes: r?.prep_minutes ? String(r.prep_minutes) : '',
     difficulty: r?.difficulty ?? null,
     servings: r?.servings ? String(r.servings) : '',
-    tags: r?.tags ?? [],
+    // Las etiquetas internas (favorita, nutrición) se conservan; la nutrición se edita aparte.
+    tags: withNutrition(r?.tags, null),
     ingredients: (r?.ingredients?.length ? r.ingredients : [{ name: '', quantity: '' }]).map((i) => ({
       name: i.name ?? '',
       quantity: i.quantity ?? '',
     })),
     steps: r?.steps?.length ? [...r.steps] : [''],
+  }
+}
+
+/** Si hay algún macro, completa lo que falte (las kcal se calculan si no se ponen). */
+function draftNutrition(d: Draft) {
+  const n = (s: string) => (s.trim() === '' ? null : Math.max(0, parseInt(s, 10) || 0))
+  const [kcal, p, c, f] = [n(d.kcal), n(d.protein), n(d.carbs), n(d.fat)]
+  if ([kcal, p, c, f].every((x) => x === null)) return null
+  return {
+    protein: p ?? 0,
+    carbs: c ?? 0,
+    fat: f ?? 0,
+    kcal: kcal ?? kcalFromMacros(p ?? 0, c ?? 0, f ?? 0),
   }
 }
 
@@ -45,7 +69,7 @@ function toRow(d: Draft): Record<string, unknown> {
     prep_minutes: num(d.prep_minutes),
     difficulty: d.difficulty,
     servings: num(d.servings),
-    tags: d.tags,
+    tags: withNutrition(d.tags, draftNutrition(d)),
     ingredients: d.ingredients
       .filter((i) => i.name.trim())
       .map((i) => ({ name: capitalize(i.name), quantity: i.quantity.trim() || null, category: guessCategory(i.name) })),
@@ -187,6 +211,32 @@ function EditorForm({ initial, go }: { initial: Recipe | null; go: (path: string
               </button>
             )
           })}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className={`mb-1 ${label}`}>Por ración (opcional)</legend>
+        <p className="mb-2 text-sm text-gris">Si pones proteínas, hidratos y grasas, las calorías se calculan solas.</p>
+        <div className="grid grid-cols-4 gap-2">
+          {(
+            [
+              ['kcal', 'Kcal'],
+              ['protein', 'Prot. g'],
+              ['carbs', 'Hidr. g'],
+              ['fat', 'Grasa g'],
+            ] as const
+          ).map(([key, text]) => (
+            <label key={key} className="flex flex-col gap-1">
+              <span className="text-center text-sm font-semibold text-gris">{text}</span>
+              <input
+                className="min-h-14 w-full min-w-0 rounded-2xl border-2 border-borde bg-white px-1 text-center text-lg"
+                inputMode="numeric"
+                value={draft[key]}
+                placeholder={key === 'kcal' && draftNutrition(draft) ? String(draftNutrition(draft)!.kcal) : '–'}
+                onChange={(e) => set(key, e.target.value.replace(/\D/g, ''))}
+              />
+            </label>
+          ))}
         </div>
       </fieldset>
 

@@ -3,6 +3,7 @@ import { normalizeName } from '../../lib/text'
 import type { Mutation } from '../../sync/types'
 import type { NewItemInput } from '../shopping/logic'
 import type { PoolRecipe } from '../ideas/build'
+import { nutritionForSlug, withNutrition } from './nutrition'
 
 export interface RecipeIngredient {
   name: string
@@ -116,7 +117,7 @@ export async function planSeed(
         prep_minutes: s.prep_minutes,
         difficulty: s.difficulty,
         servings: s.servings,
-        tags: s.tags,
+        tags: withNutrition(s.tags, nutritionForSlug(s.slug)),
         ingredients: s.ingredients,
         steps: s.steps,
         deleted_at: null,

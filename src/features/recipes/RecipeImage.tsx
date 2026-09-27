@@ -7,7 +7,8 @@ export function RecipeImage({ recipe, className = '' }: { recipe: Pick<Recipe, '
   if (recipe.photo_path) {
     return <img src={recipe.photo_path} alt="" className={`object-cover ${className}`} />
   }
-  const tag = (recipe.tags ?? []).find((t) => t !== 'rapida' && t !== 'saludable') ?? recipe.tags?.[0]
+  const tags = (recipe.tags ?? []).filter((t) => t in EMOJI)
+  const tag = tags.find((t) => t !== 'rapida' && t !== 'saludable') ?? tags[0]
   return (
     <div aria-hidden className={`flex items-center justify-center bg-terra-claro text-4xl ${className}`}>
       {(tag && EMOJI[tag]) || '🍲'}

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useEngine, useHousehold } from '../../sync/EngineProvider'
 import { useFeedback } from '../../ui/feedback'
 import type { Recipe } from '../recipes/logic'
+import { isFavorite, nutritionForSlug, withFavorite, withNutrition } from '../recipes/nutrition'
 import { RecipeView } from '../recipes/RecipeView'
 import { findIdea, ideaRecipeId, planSaveIdea } from './logic'
 
@@ -17,11 +18,12 @@ export function IdeaDetail({ slug, go }: { slug: string; go: (path: string) => v
     void ideaRecipeId(household.id, slug).then(setId)
   }, [household.id, slug])
 
-  const saved = useLiveQuery(async () => {
-    if (!id) return false
-    const row = await engine.db.rows('recipes').get(id)
-    return Boolean(row && !row.deleted_at)
+  const savedRow = useLiveQuery(async () => {
+    if (!id) return null
+    const row = (await engine.db.rows('recipes').get(id)) as unknown as Recipe | undefined
+    return row && !row.deleted_at ? row : null
   }, [engine, id])
+  const saved = Boolean(savedRow)
 
   if (!found) {
     return <p className="mt-10 text-center text-lg text-gris">Esta idea ya no está disponible.</p>
@@ -33,6 +35,14 @@ export function IdeaDetail({ slug, go }: { slug: string; go: (path: string) => v
     const row = await engine.db.rows('recipes').get(rid)
     if (!row || row.deleted_at) await engine.mutate([planSaveIdea(rid, idea)])
     return rid
+  }
+
+  const toggleFavorite = async () => {
+    const on = !isFavorite(savedRow?.tags)
+    const rid = await ensureSaved()
+    const row = (await engine.db.rows('recipes').get(rid)) as unknown as Recipe | undefined
+    await engine.update('recipes', rid, { tags: withFavorite(row?.tags ?? idea.tags, on) })
+    showInfo(on ? 'Guardada en favoritas ⭐' : 'Quitada de favoritas')
   }
 
   const save = async () => {
@@ -48,7 +58,7 @@ export function IdeaDetail({ slug, go }: { slug: string; go: (path: string) => v
     prep_minutes: idea.prep_minutes,
     difficulty: idea.difficulty,
     servings: idea.servings,
-    tags: idea.tags,
+    tags: savedRow?.tags ?? withNutrition(idea.tags, nutritionForSlug(idea.slug)),
     ingredients: idea.ingredients,
     steps: idea.steps,
   }
@@ -57,6 +67,7 @@ export function IdeaDetail({ slug, go }: { slug: string; go: (path: string) => v
     <RecipeView
       recipe={recipe}
       ensureSaved={ensureSaved}
+      onToggleFavorite={() => void toggleFavorite()}
       extraAction={
         saved ? (
           <button onClick={() => id && go(`recetas/${id}`)} className="min-h-14 rounded-2xl border-2 border-oliva bg-oliva-claro text-lg font-bold text-oliva">

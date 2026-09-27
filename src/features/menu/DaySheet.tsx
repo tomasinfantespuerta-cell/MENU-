@@ -5,6 +5,7 @@ import { useFeedback } from '../../ui/feedback'
 import { Sheet } from '../../ui/Sheet'
 import { filterRecipes } from '../recipes/logic'
 import { useRecipes } from '../recipes/hooks'
+import { isFavorite } from '../recipes/nutrition'
 import { RecipeImage } from '../recipes/RecipeImage'
 import { dishLabel, hasDish, planSetDay, type MenuDay, type MenuScope } from './logic'
 
@@ -65,7 +66,9 @@ export function DaySheet({ scope, date, day, onClose, onOpenRecipe }: Props) {
 
   // En tu menú, las saludables primero.
   const all = filterRecipes(recipes ?? [], query, null)
-  const list = scope === 'yo' ? [...all.filter((r) => r.tags?.includes('saludable')), ...all.filter((r) => !r.tags?.includes('saludable'))] : all
+  // Primero favoritas; en tu menú, después las saludables.
+  const rank = (r: (typeof all)[number]) => (isFavorite(r.tags) ? 0 : 2) + (scope === 'yo' && !r.tags?.includes('saludable') ? 1 : 0)
+  const list = [...all].sort((a, b) => rank(a) - rank(b))
 
   return (
     <Sheet title={`${weekdayName(date)} ${formatShortDate(date)}`} onClose={onClose}>
@@ -115,7 +118,10 @@ export function DaySheet({ scope, date, day, onClose, onOpenRecipe }: Props) {
                   }`}
                 >
                   <RecipeImage recipe={r} className="h-14 w-14 shrink-0 text-2xl" />
-                  <span className="py-2 pr-3 text-lg font-semibold leading-tight">{r.title}</span>
+                  <span className="py-2 pr-3 text-lg font-semibold leading-tight">
+                    {isFavorite(r.tags) && <span className="mr-1 text-aviso">★</span>}
+                    {r.title}
+                  </span>
                 </button>
               </li>
             ))}
