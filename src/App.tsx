@@ -49,6 +49,10 @@ function parseRoute(): Route {
   const parts = path.split('/').filter(Boolean)
   if (parts[0] === 'ajustes') return { path, tab: null, page: 'ajustes', id: null }
   if (parts[0] === 'yo' && parts[1] === 'ideas') return { path, tab: 'yo', page: 'ideas-yo', id: null }
+  // «Mis recetas» (pestaña Yo): mismas pantallas, con vuelta a la pestaña Yo.
+  if (parts[0] === 'yo' && parts[1] === 'recetas' && parts[2] === 'nueva') return { path, tab: 'yo', page: 'nueva-receta', id: null }
+  if (parts[0] === 'yo' && parts[1] === 'recetas' && parts[2] && parts[3] === 'editar') return { path, tab: 'yo', page: 'editar-receta', id: parts[2] }
+  if (parts[0] === 'yo' && parts[1] === 'recetas' && parts[2]) return { path, tab: 'yo', page: 'receta', id: parts[2] }
   if (parts[0] === 'recetas' && parts[1] === 'ideas' && parts[2]) return { path, tab: 'recetas', page: 'idea', id: parts[2] }
   if (parts[0] === 'recetas' && parts[1] === 'ideas') return { path, tab: 'recetas', page: 'ideas', id: null }
   if (parts[0] === 'recetas' && parts[1] === 'nueva') return { path, tab: 'recetas', page: 'nueva-receta', id: null }
@@ -94,6 +98,7 @@ function parentOf(route: Route): string | null {
       return lastTab()
     case 'receta':
     case 'nueva-receta':
+      return route.tab === 'yo' ? 'yo' : 'recetas'
     case 'ideas':
       return 'recetas'
     case 'idea':
@@ -101,7 +106,7 @@ function parentOf(route: Route): string | null {
     case 'ideas-yo':
       return 'yo'
     case 'editar-receta':
-      return `recetas/${route.id}`
+      return `${route.tab === 'yo' ? 'yo/recetas' : 'recetas'}/${route.id}`
     default:
       return null
   }
@@ -133,6 +138,7 @@ function Shell({ onLeave }: { onLeave: () => void }) {
   }
 
   const parent = parentOf(route)
+  const recipeBase = route.tab === 'yo' ? 'yo/recetas' : 'recetas'
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
@@ -170,9 +176,9 @@ function Shell({ onLeave }: { onLeave: () => void }) {
         {route.page === 'ideas' && <IdeasPage go={go} />}
         {route.page === 'ideas-yo' && <IdeasPage go={go} only="saludable" />}
         {route.page === 'idea' && route.id && <IdeaDetail slug={route.id} go={go} />}
-        {route.page === 'receta' && route.id && <RecipeDetail id={route.id} go={go} />}
-        {route.page === 'editar-receta' && route.id && <RecipeEditor id={route.id} go={go} />}
-        {route.page === 'nueva-receta' && <RecipeEditor id={null} go={go} />}
+        {route.page === 'receta' && route.id && <RecipeDetail key={route.path} id={route.id} go={go} base={recipeBase} />}
+        {route.page === 'editar-receta' && route.id && <RecipeEditor id={route.id} go={go} base={recipeBase} />}
+        {route.page === 'nueva-receta' && <RecipeEditor key={route.path} id={null} go={go} base={recipeBase} />}
         {route.page === 'ajustes' && <SettingsPage onLeave={leave} />}
       </main>
 

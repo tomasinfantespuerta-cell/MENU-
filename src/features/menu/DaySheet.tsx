@@ -5,7 +5,7 @@ import { useFeedback } from '../../ui/feedback'
 import { Sheet } from '../../ui/Sheet'
 import { filterRecipes } from '../recipes/logic'
 import { useRecipes } from '../recipes/hooks'
-import { isFavorite } from '../recipes/nutrition'
+import { isFavorite, isMine } from '../recipes/nutrition'
 import { RecipeImage } from '../recipes/RecipeImage'
 import { dishLabel, hasDish, planSetDay, type MenuDay, type MenuScope } from './logic'
 
@@ -66,8 +66,9 @@ export function DaySheet({ scope, date, day, onClose, onOpenRecipe }: Props) {
 
   // En tu menú, las saludables primero.
   const all = filterRecipes(recipes ?? [], query, null)
-  // Primero favoritas; en tu menú, después las saludables.
-  const rank = (r: (typeof all)[number]) => (isFavorite(r.tags) ? 0 : 2) + (scope === 'yo' && !r.tags?.includes('saludable') ? 1 : 0)
+  // Primero favoritas; en tu menú, después tus recetas y las saludables.
+  const rank = (r: (typeof all)[number]) =>
+    (isFavorite(r.tags) ? 0 : 2) + (scope === 'yo' && !isMine(r.tags) && !r.tags?.includes('saludable') ? 1 : 0)
   const list = [...all].sort((a, b) => rank(a) - rank(b))
 
   return (

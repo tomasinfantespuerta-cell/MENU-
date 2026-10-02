@@ -5,7 +5,7 @@ import { useEngine } from '../../sync/EngineProvider'
 import { useFeedback } from '../../ui/feedback'
 import { DIFFICULTIES, FILTERS, type Difficulty, type Recipe } from './logic'
 import { useRecipe } from './hooks'
-import { kcalFromMacros, nutritionFromTags, withNutrition } from './nutrition'
+import { kcalFromMacros, nutritionFromTags, withMine, withNutrition } from './nutrition'
 import { photoToDataUrl } from './photo'
 
 interface Draft {
@@ -78,16 +78,19 @@ function toRow(d: Draft): Record<string, unknown> {
 }
 
 /** Crear o editar una receta. Se guarda sola mientras se escribe. */
-export function RecipeEditor({ id, go }: { id: string | null; go: (path: string) => void }) {
+export function RecipeEditor({ id, go, base = 'recetas' }: { id: string | null; go: (path: string) => void; base?: string }) {
   const existing = useRecipe(id)
   if (id && existing === undefined) return <p className="p-6 text-center text-lg text-gris">Cargando…</p>
-  return <EditorForm key={id ?? 'nueva'} initial={existing ?? null} go={go} />
+  return <EditorForm key={id ?? 'nueva'} initial={existing ?? null} go={go} base={base} />
 }
 
-function EditorForm({ initial, go }: { initial: Recipe | null; go: (path: string) => void }) {
+function EditorForm({ initial, go, base }: { initial: Recipe | null; go: (path: string) => void; base: string }) {
   const engine = useEngine()
   const { showInfo } = useFeedback()
-  const [draft, setDraft] = useState<Draft>(() => toDraft(initial))
+  const [draft, setDraft] = useState<Draft>(() => {
+    const d = toDraft(initial)
+    return !initial && base.startsWith('yo') ? { ...d, tags: withMine(d.tags, true) } : d
+  })
   const [id] = useState(() => initial?.id ?? newId())
   const created = useRef(Boolean(initial))
   const lastSaved = useRef(initial ? JSON.stringify(toRow(toDraft(initial))) : '')
@@ -130,11 +133,11 @@ function EditorForm({ initial, go }: { initial: Recipe | null; go: (path: string
 
   const done = () => {
     if (!draft.title.trim()) {
-      go('recetas')
+      go(base)
       return
     }
     save()
-    go(`recetas/${id}`)
+    go(`${base}/${id}`)
   }
 
   const input = 'min-h-14 w-full rounded-2xl border-2 border-borde bg-white px-4 text-lg placeholder:text-gris/60'

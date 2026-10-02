@@ -1,19 +1,26 @@
 import { useState } from 'react'
 import { MenuPage } from '../menu/MenuPage'
+import { RecipesPage } from '../recipes/RecipesPage'
 import { ShoppingPage } from '../shopping/ShoppingPage'
 
-type Section = 'menu' | 'compra'
+type Section = 'menu' | 'compra' | 'recetas'
 const KEY = 'comidas-casa.yo.seccion'
+const SECTIONS: Array<[Section, string, string]> = [
+  ['menu', '📅', 'Mi menú'],
+  ['compra', '🛒', 'Mi compra'],
+  ['recetas', '📖', 'Mis recetas'],
+]
 
 function readSection(): Section {
   try {
-    return localStorage.getItem(KEY) === 'compra' ? 'compra' : 'menu'
+    const s = localStorage.getItem(KEY)
+    return s === 'compra' || s === 'recetas' ? s : 'menu'
   } catch {
     return 'menu'
   }
 }
 
-/** Pestaña «Yo»: menú y lista de la compra personales. */
+/** Pestaña «Yo»: menú, lista de la compra y recetas personales. */
 export function PersonalPage({ go }: { go: (path: string) => void }) {
   const [section, setSection] = useState<Section>(readSection)
   const choose = (s: Section) => {
@@ -27,26 +34,24 @@ export function PersonalPage({ go }: { go: (path: string) => void }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-crema-oscuro p-1" role="tablist">
-        {(
-          [
-            ['menu', '📅 Mi menú'],
-            ['compra', '🛒 Mi compra'],
-          ] as const
-        ).map(([id, label]) => (
+      <div className="grid grid-cols-3 gap-1 rounded-2xl bg-crema-oscuro p-1" role="tablist">
+        {SECTIONS.map(([id, icon, label]) => (
           <button
             key={id}
             role="tab"
             aria-selected={section === id}
             onClick={() => choose(id)}
-            className={`min-h-12 rounded-xl text-lg font-bold ${section === id ? 'bg-white text-terra shadow-sm' : 'text-gris'}`}
+            className={`flex min-h-16 flex-col items-center justify-center rounded-xl px-1 text-base leading-tight font-bold ${
+              section === id ? 'bg-white text-terra shadow-sm' : 'text-gris'
+            }`}
           >
+            <span aria-hidden className="text-xl">{icon}</span>
             {label}
           </button>
         ))}
       </div>
 
-      {section === 'menu' ? (
+      {section === 'menu' && (
         <>
           <button
             onClick={() => go('yo/ideas')}
@@ -57,9 +62,9 @@ export function PersonalPage({ go }: { go: (path: string) => void }) {
           </button>
           <MenuPage go={go} scope="yo" />
         </>
-      ) : (
-        <ShoppingPage list="yo" />
       )}
+      {section === 'compra' && <ShoppingPage list="yo" />}
+      {section === 'recetas' && <RecipesPage go={go} mine />}
     </div>
   )
 }

@@ -3,12 +3,14 @@ import { FAMILY_POOL, HEALTHY_POOL, planSaveIdea } from '../ideas/logic'
 import { planSeed } from './logic'
 import {
   isFavorite,
+  isMine,
   kcalFromMacros,
   knownNutritionSlugs,
   nutritionForSlug,
   nutritionFromTags,
   visibleTags,
   withFavorite,
+  withMine,
   withNutrition,
 } from './nutrition'
 import { SEED_RECIPES } from './seed'
@@ -56,6 +58,14 @@ describe('calorías y macros', () => {
     expect(withFavorite(t, true)).toEqual(t)
     expect(isFavorite(withFavorite(t, false))).toBe(false)
     expect(visibleTags(t)).toEqual(['carne'])
+  })
+
+  it('Mis recetas', () => {
+    const t = withMine(['saludable', 'favorita'], true)
+    expect(isMine(t)).toBe(true)
+    expect(visibleTags(t)).toEqual(['saludable'])
+    expect(isMine(withMine(t, false))).toBe(false)
+    expect(withMine(t, true)).toEqual(t)
   })
 
   it('al cargar recetas o guardar ideas ya llevan sus macros', async () => {

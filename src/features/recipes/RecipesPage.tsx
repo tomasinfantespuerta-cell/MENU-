@@ -1,19 +1,23 @@
 import { useMemo, useState } from 'react'
 import { difficultyLabel, FILTERS, filterRecipes, formatMinutes } from './logic'
 import { useRecipes } from './hooks'
-import { FAVORITE_TAG, isFavorite, nutritionFromTags } from './nutrition'
+import { FAVORITE_TAG, isFavorite, isMine, nutritionFromTags } from './nutrition'
 import { RecipeImage } from './RecipeImage'
 
-export function RecipesPage({ go }: { go: (path: string) => void }) {
+/** Recetario familiar, o «Mis recetas» (mine) dentro de la pestaña Yo. */
+export function RecipesPage({ go, mine = false }: { go: (path: string) => void; mine?: boolean }) {
+  const base = mine ? 'yo/recetas' : 'recetas'
   const recipes = useRecipes()
   const [query, setQuery] = useState('')
   const [tag, setTag] = useState<string | null>(null)
-  const list = useMemo(() => filterRecipes(recipes ?? [], query, tag), [recipes, query, tag])
+  const own = useMemo(() => (recipes ?? []).filter((r) => isMine(r.tags) === mine), [recipes, mine])
+  const list = useMemo(() => filterRecipes(own, query, tag), [own, query, tag])
 
   if (recipes === undefined) return <p className="p-6 text-center text-lg text-gris">Cargando…</p>
 
   return (
     <div className="flex flex-col gap-4">
+      {!mine && (
       <button
         onClick={() => go('recetas/ideas')}
         className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-2 border-terra bg-terra-claro px-4 text-left"
@@ -24,6 +28,7 @@ export function RecipesPage({ go }: { go: (path: string) => void }) {
         </span>
         <span aria-hidden className="text-2xl text-terra-oscuro">›</span>
       </button>
+      )}
 
       <div className="flex gap-2">
         <label htmlFor="buscar-receta" className="sr-only">Buscar receta</label>
@@ -71,26 +76,30 @@ export function RecipesPage({ go }: { go: (path: string) => void }) {
       </div>
 
       <button
-        onClick={() => go('recetas/nueva')}
+        onClick={() => go(`${base}/nueva`)}
         className="min-h-14 rounded-2xl border-2 border-dashed border-terra bg-white text-lg font-bold text-terra active:bg-terra-claro"
       >
-        + Nueva receta
+        {mine ? '+ Apuntar receta' : '+ Nueva receta'}
       </button>
 
       {list.length === 0 ? (
         <p className="mt-6 text-center text-lg text-gris">
-          {tag === FAVORITE_TAG && !query
+          {mine && own.filter((r) => !r.deleted_at).length === 0
+            ? 'Aquí guardas tus recetas: las que te gusten o se te ocurran. Pulsa «Apuntar receta».'
+            : tag === FAVORITE_TAG && !query
             ? 'Aún no hay favoritas. Abre una receta y pulsa la ☆.'
             : recipes.some((r) => !r.deleted_at)
               ? 'No hay recetas con esa búsqueda.'
-              : 'Cargando las recetas…'}
+              : mine
+                ? 'No hay recetas con esa búsqueda.'
+                : 'Cargando las recetas…'}
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {list.map((r) => (
             <li key={r.id}>
               <button
-                onClick={() => go(`recetas/${r.id}`)}
+                onClick={() => go(`${base}/${r.id}`)}
                 className="flex w-full items-stretch overflow-hidden rounded-2xl border-2 border-borde bg-white text-left active:bg-crema-oscuro"
               >
                 <RecipeImage recipe={r} className="h-24 w-24 shrink-0" />

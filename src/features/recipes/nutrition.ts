@@ -16,6 +16,8 @@ export interface Nutrition {
 
 const NUTRI_PREFIX = 'nutri:'
 export const FAVORITE_TAG = 'favorita'
+/** Recetas de «Mis recetas» (pestaña Yo): no salen en el recetario familiar. */
+export const MINE_TAG = 'mia'
 
 /** kcal a partir de los macros (4/4/9), redondeado a 5. */
 export function kcalFromMacros(protein: number, carbs: number, fat: number): number {
@@ -41,6 +43,15 @@ export function isFavorite(tags: string[] | null | undefined): boolean {
   return (tags ?? []).includes(FAVORITE_TAG)
 }
 
+export function isMine(tags: string[] | null | undefined): boolean {
+  return (tags ?? []).includes(MINE_TAG)
+}
+
+export function withMine(tags: string[] | null | undefined, on: boolean): string[] {
+  const rest = (tags ?? []).filter((x) => x !== MINE_TAG)
+  return on ? [...rest, MINE_TAG] : rest
+}
+
 export function withFavorite(tags: string[] | null | undefined, on: boolean): string[] {
   const rest = (tags ?? []).filter((x) => x !== FAVORITE_TAG)
   return on ? [...rest, FAVORITE_TAG] : rest
@@ -48,7 +59,7 @@ export function withFavorite(tags: string[] | null | undefined, on: boolean): st
 
 /** Etiquetas "de verdad" (tipo de plato), sin las internas. */
 export function visibleTags(tags: string[] | null | undefined): string[] {
-  return (tags ?? []).filter((x) => !x.startsWith(NUTRI_PREFIX) && x !== FAVORITE_TAG)
+  return (tags ?? []).filter((x) => !x.startsWith(NUTRI_PREFIX) && x !== FAVORITE_TAG && x !== MINE_TAG)
 }
 
 /**
